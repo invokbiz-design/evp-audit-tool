@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Cell, Tooltip, LineChart, Line, CartesianGrid, ReferenceLine } from "recharts";
+
 /* ─── Brand Tokens ── */
 const T = {
   bg:"#f7f8fa", card:"#ffffff", border:"#e2e8f0", borderDark:"#cbd5e1",
@@ -48,10 +49,10 @@ const tColor     = t => t==="improving"?T.green:t==="declining"?T.red:T.yellow;
 const clampW     = w => { const s=Object.values(w).reduce((a,b)=>a+b,0)||1; return Object.fromEntries(Object.entries(w).map(([k,v])=>[k,Math.round(v/s*100)])); };
 const calcWeighted = (dims,weights) => { let t=0,ws=0; DIMS.forEach(d=>{t+=(dims[d.key]?.score??0)*(weights[d.key]??d.weight);ws+=weights[d.key]??d.weight;}); return ws?Math.round(t/ws):0; };
 
-/* ─── InvokBiz SVG Logo ─────────────────────────────────── */
+/* ─── InvokBiz Logo ─────────────────────────────────── */
 const InvokBizLogo = ({ size = 28 }) => (
   <img
-    src="https://invokbiz.com/wp-content/uploads/2026/04/WhatsApp-Image-2026-04-21-at-11.53.52-AM.jpeg"
+    src="https://invokbiz.com/wp-content/uploads/2026/05/Invoker_Biz_Logo_page-0001-removebg-preview-1.png"
     alt="InvokBiz"
     style={{ height: size, width: "auto", objectFit: "contain", display: "block" }}
   />
@@ -180,32 +181,117 @@ Return ONLY valid JSON. No markdown. Start with { end with }.
 /* ─── Global styles ─────────────────────────────────────── */
 const GLOBAL_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'DM Sans',sans-serif;}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @keyframes stepIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-  @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-  .report-section{animation:fadeUp 0.4s ease;}
-  input:focus{outline:2px solid ${T.brand}; outline-offset:0;}
-  button:hover{opacity:0.87;}
-  a{color:${T.brand};text-decoration:none;} a:hover{text-decoration:underline;}
-  ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-track{background:#f1f5f9;} ::-webkit-scrollbar-thumb{background:#d96029;border-radius:10px;opacity:0.5;}
-  
-  /* Responsive utilities */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    color: #0f172a;
+    background: #f7f8fa;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Font enforcement — all text uses Sora or DM Sans ── */
+  h1, h2, h3, h4, h5, h6,
+  .sora, [data-sora] {
+    font-family: 'Sora', sans-serif;
+  }
+  p, span, div, label, input, button, a,
+  .dm, [data-dm] {
+    font-family: 'DM Sans', sans-serif;
+  }
+  /* Override: elements explicitly flagged as Sora */
+  .font-sora { font-family: 'Sora', sans-serif !important; }
+  .font-dm   { font-family: 'DM Sans', sans-serif !important; }
+
+  /* ── Brand colour enforcement ── */
+  .brand-color  { color: #d96029 !important; }
+  .brand-bg     { background: #d96029 !important; }
+  .white-color  { color: #ffffff !important; }
+
+  @keyframes fadeUp  { from { opacity:0; transform:translateY(18px) } to { opacity:1; transform:none } }
+  @keyframes spin    { to { transform:rotate(360deg) } }
+  @keyframes stepIn  { from { opacity:0; transform:translateX(-10px) } to { opacity:1; transform:none } }
+  @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .report-section { animation: fadeUp 0.4s ease; }
+
+  input:focus {
+    outline: 2px solid #d96029;
+    outline-offset: 0;
+  }
+  button:hover { opacity: 0.87; }
+  a { color: #d96029; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #d96029; border-radius: 10px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .hide-xs { display: none !important; }
+    .stack-xs { flex-direction: column !important; }
+    .full-xs  { width: 100% !important; min-width: unset !important; }
+    .grid1-xs { grid-template-columns: 1fr !important; }
+    .text-xs  { font-size: 11px !important; }
+    .p-xs     { padding: 14px !important; }
+  }
   @media (max-width: 640px) {
-    .hide-mobile { display: none !important; }
-    .stack-mobile { flex-direction: column !important; }
-    .full-mobile { width: 100% !important; min-width: unset !important; }
-    .grid-1-mobile { grid-template-columns: 1fr !important; }
-    .text-sm-mobile { font-size: 11px !important; }
-    .p-sm-mobile { padding: 16px !important; }
+    .hide-sm { display: none !important; }
+    .stack-sm { flex-direction: column !important; }
+    .full-sm  { width: 100% !important; min-width: unset !important; }
+    .grid1-sm { grid-template-columns: 1fr !important; }
+    .text-sm  { font-size: 11px !important; }
+    .p-sm     { padding: 16px !important; }
   }
   @media (max-width: 768px) {
-    .hide-tablet { display: none !important; }
-    .stack-tablet { flex-direction: column !important; }
-    .grid-1-tablet { grid-template-columns: 1fr !important; }
+    .hide-md { display: none !important; }
+    .stack-md { flex-direction: column !important; }
+    .grid1-md { grid-template-columns: 1fr !important; }
+  }
+  @media (max-width: 1024px) {
+    .hide-lg { display: none !important; }
+  }
+
+  /* ── Weight slider row ── */
+  .weight-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .weight-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: #334155;
+    flex: 0 0 120px;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .weight-slider {
+    flex: 1;
+    min-width: 0;
+    accent-color: #d96029;
+  }
+  .weight-pct {
+    font-family: 'Sora', sans-serif;
+    font-size: 11px;
+    color: #d96029;
+    font-weight: 600;
+    flex: 0 0 32px;
+    text-align: right;
+  }
+  @media (max-width: 480px) {
+    .weight-label { flex: 0 0 90px; font-size: 11px; }
+    .weight-pct   { flex: 0 0 28px; font-size: 10px; }
+  }
+
+  /* ── Placeholder styling ── */
+  ::placeholder {
+    font-family: 'DM Sans', sans-serif;
+    color: #94a3b8;
   }
 `;
 
@@ -294,34 +380,57 @@ export default function EVPAuditTool() {
       "Reconstructing historical attractiveness — 2022 · 2024 · 2025",
     ];
     for(let i=0;i<pSteps.length;i++){await new Promise(r=>setTimeout(r,750));setSteps(p=>[...p,pSteps[i]]);}
-   try {
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.REACT_APP_GROQ_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 8000,
-      temperature: 0.7,
-      messages: [
-        { role: "system", content: SYSTEM },
-        { role: "user", content: `Conduct a comprehensive EVP audit for: ${company.trim()}\n\n${websiteClause}\n\nFollow the two-track research methodology exactly:\nTrack A (claims): fetch and read the website, careers page, job descriptions, and any leadership interviews or company-authored content.\nTrack B (experience & perception): search for employee reviews, candidate experience, and public perception of news/events.\n\nFor each dimension find minimum 3 evidence points with source attribution. Estimate realistic industry_average benchmarks for this company's sector. Write detailed recommendations (what/why/how, 3+ sentences each). For the historical section search specifically for 2022 and 2024 dated signals. Rank priority_interventions from most to least critical.` }
-      ],
-    }),
-  });
 
-  if(!res.ok) throw new Error(`API error ${res.status}`);
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 20; // seconds to wait on 429
 
-  const data = await res.json();
-  const txt  = data.choices[0].message.content;
-  const cl   = txt.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
-  const s = cl.indexOf("{"), e = cl.lastIndexOf("}");
-  if(s === -1 || e === -1) throw new Error("No JSON in response");
-  setResults(JSON.parse(cl.slice(s, e+1)));
-  setPhase("complete");
-} catch(e){ setError(e.message||"Audit failed"); setPhase("error"); }
+    const callAPI = async (attempt = 1) => {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.REACT_APP_GROQ_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          max_tokens: 8000,
+          temperature: 0.7,
+          messages: [
+            { role: "system", content: SYSTEM },
+            { role: "user", content: `Conduct a comprehensive EVP audit for: ${company.trim()}\n\n${websiteClause}\n\nFollow the two-track research methodology exactly:\nTrack A (claims): fetch and read the website, careers page, job descriptions, and any leadership interviews or company-authored content.\nTrack B (experience & perception): search for employee reviews, candidate experience, and public perception of news/events.\n\nFor each dimension find minimum 3 evidence points with source attribution. Estimate realistic industry_average benchmarks for this company's sector. Write detailed recommendations (what/why/how, 3+ sentences each). For the historical section search specifically for 2022 and 2024 dated signals. Rank priority_interventions from most to least critical.` }
+          ],
+        }),
+      });
+
+      // Handle rate limit with retry
+      if(res.status === 429) {
+        if(attempt > MAX_RETRIES) throw new Error("rate_limit_exceeded");
+        // Get retry-after header if available, else use default
+        const retryAfter = parseInt(res.headers.get("retry-after") || String(RETRY_DELAY));
+        const waitSec = Math.min(retryAfter, 60);
+        // Countdown display
+        for(let t = waitSec; t > 0; t--) {
+          setError(`rate_limit_retry:${t}:${attempt}:${MAX_RETRIES}`);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        setError("");
+        return callAPI(attempt + 1);
+      }
+
+      if(!res.ok) throw new Error(`API error ${res.status}`);
+      return res;
+    };
+
+    try {
+      const res  = await callAPI();
+      const data = await res.json();
+      const txt  = data.choices[0].message.content;
+      const cl   = txt.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
+      const s = cl.indexOf("{"), e = cl.lastIndexOf("}");
+      if(s === -1 || e === -1) throw new Error("No JSON in response");
+      setResults(JSON.parse(cl.slice(s, e+1)));
+      setPhase("complete");
+    } catch(e){ setError(e.message||"Audit failed"); setPhase("error"); }
   };
 
   const root = {minHeight:"100vh",background:T.bg,fontFamily:"'DM Sans',sans-serif",color:T.ink1};
@@ -331,10 +440,9 @@ export default function EVPAuditTool() {
     <div style={{...root,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#f9fafb"}}>
       <style>{GLOBAL_STYLES}</style>
 
-      {/* Hero section */}
       <div style={{width:"100%",maxWidth:680,padding:"clamp(24px,5vw,60px) clamp(16px,4vw,32px)",animation:"fadeUp 0.7s ease",textAlign:"center"}}>
 
-        {/* Logo mark */}
+        {/* Logo pill */}
         <div style={{display:"flex",justifyContent:"center",marginBottom:32}}>
           <div style={{display:"flex",alignItems:"center",gap:10,background:T.white,border:`1px solid ${T.brandBorder}`,borderRadius:40,padding:"8px 20px 8px 12px",boxShadow:`0 2px 12px rgba(217,96,41,0.12)`}}>
             <InvokBizLogo size={28} />
@@ -364,7 +472,17 @@ export default function EVPAuditTool() {
                 onChange={e=>setCompany(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&company.trim()&&runAudit()}
                 placeholder="e.g. Zomato, Infosys, HDFC Bank"
-                style={{padding:"13px 16px",fontSize:14,border:`1.5px solid ${T.border}`,borderRadius:10,color:T.ink1,background:"#fff",fontFamily:"'DM Sans',sans-serif",transition:"border-color 0.2s"}}
+                style={{
+                  padding:"13px 16px",
+                  fontSize:14,
+                  border:`1.5px solid ${T.border}`,
+                  borderRadius:10,
+                  color:T.ink1,
+                  background:"#fff",
+                  fontFamily:"'DM Sans',sans-serif",
+                  transition:"border-color 0.2s",
+                  width:"100%",
+                }}
               />
             </div>
 
@@ -378,9 +496,18 @@ export default function EVPAuditTool() {
                 onChange={e=>setWebsiteUrl(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&company.trim()&&runAudit()}
                 placeholder="https://company.com"
-                style={{padding:"13px 16px",fontSize:14,border:`1.5px solid ${T.border}`,borderRadius:10,color:T.ink1,background:"#fff",fontFamily:"'DM Sans',sans-serif"}}
+                style={{
+                  padding:"13px 16px",
+                  fontSize:14,
+                  border:`1.5px solid ${T.border}`,
+                  borderRadius:10,
+                  color:T.ink1,
+                  background:"#fff",
+                  fontFamily:"'DM Sans',sans-serif",
+                  width:"100%",
+                }}
               />
-              <span style={{fontSize:11,color:T.ink4,paddingLeft:2,fontFamily:"'DM Sans',sans-serif"}}>We'll fetch the website, careers page and job descriptions directly.</span>
+
             </div>
 
             <button
@@ -389,13 +516,14 @@ export default function EVPAuditTool() {
               style={{
                 padding:"14px",
                 background:company.trim()?`linear-gradient(135deg, ${T.brand} 0%, ${T.brandDark} 100%)`:"#e2e8f0",
-                color:company.trim()?"#fff":T.ink4,
+                color:company.trim()?"#ffffff":T.ink4,
                 border:"none",borderRadius:10,fontSize:14,fontWeight:700,
                 fontFamily:"'Sora',sans-serif",
                 cursor:company.trim()?"pointer":"not-allowed",
                 letterSpacing:"0.04em",
                 boxShadow:company.trim()?`0 4px 16px rgba(217,96,41,0.35)`:"none",
                 transition:"all 0.2s",marginTop:4,
+                width:"100%",
               }}
             >
               Launch Audit ▶
@@ -414,49 +542,110 @@ export default function EVPAuditTool() {
   );
 
   /* ── RESEARCHING ─────────────────────────────────────────── */
-  if(phase==="researching") return(
-    <div style={{...root,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <style>{GLOBAL_STYLES}</style>
-      <div style={{maxWidth:520,width:"100%",padding:"0 clamp(16px,4vw,24px)",textAlign:"center"}}>
-        {/* Animated logo spinner */}
-        <div style={{position:"relative",width:56,height:56,margin:"0 auto 24px"}}>
-          <div style={{width:56,height:56,border:`3px solid ${T.border}`,borderTopColor:T.brand,borderRadius:"50%",animation:"spin 1s linear infinite",position:"absolute"}}/>
-          <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}>
-            <InvokBizLogo size={28}/>
-          </div>
-        </div>
+  if(phase==="researching") {
+    // Parse rate-limit countdown signal: "rate_limit_retry:seconds:attempt:max"
+    const isRateLimit = error.startsWith("rate_limit_retry:");
+    const [,countdown,attempt,maxR] = isRateLimit ? error.split(":") : [];
 
-        <h2 style={{fontFamily:"'Sora',sans-serif",fontSize:20,fontWeight:700,color:T.ink1,marginBottom:5}}>
-          Auditing <span style={{color:T.brand}}>{company}</span>
-        </h2>
-        {websiteUrl&&<p style={{fontSize:12,color:T.ink4,fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>{websiteUrl}</p>}
-        <p style={{fontSize:13,color:T.ink3,marginBottom:28,fontFamily:"'DM Sans',sans-serif"}}>Multi-source intelligence gathering in progress…</p>
-
-        <div style={{textAlign:"left"}}>
-          {steps.map((s,i)=>(
-            <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",background:"#fff",borderRadius:7,marginBottom:6,border:`1px solid ${i===steps.length-1?T.brandBorder:T.border}`,animation:"stepIn 0.35s ease"}}>
-              <span style={{fontSize:11,color:T.brand,fontFamily:"'Sora',sans-serif",animation:i===steps.length-1?"pulse 1.3s ease infinite":"none"}}>{i===steps.length-1?"►":"✓"}</span>
-              <span style={{fontSize:12,color:i===steps.length-1?T.ink1:T.ink3,fontFamily:"'DM Sans',sans-serif"}}>{s}</span>
+    return(
+      <div style={{...root,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <style>{GLOBAL_STYLES}</style>
+        <div style={{maxWidth:520,width:"100%",padding:"0 clamp(16px,4vw,24px)",textAlign:"center"}}>
+          <div style={{position:"relative",width:56,height:56,margin:"0 auto 24px"}}>
+            <div style={{width:56,height:56,border:`3px solid ${T.border}`,borderTopColor:isRateLimit?T.orange:T.brand,borderRadius:"50%",animation:"spin 1s linear infinite",position:"absolute"}}/>
+            <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}>
+              <InvokBizLogo size={28}/>
             </div>
-          ))}
+          </div>
+
+          <h2 style={{fontFamily:"'Sora',sans-serif",fontSize:20,fontWeight:700,color:T.ink1,marginBottom:5}}>
+            Auditing <span style={{color:T.brand}}>{company}</span>
+          </h2>
+          {websiteUrl&&<p style={{fontSize:12,color:T.ink4,fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>{websiteUrl}</p>}
+
+          {/* Rate-limit countdown banner */}
+          {isRateLimit ? (
+            <div style={{margin:"16px 0 24px",background:T.orangeFaint,border:`1px solid ${T.orangeBorder}`,borderRadius:10,padding:"14px 18px"}}>
+              <div style={{fontSize:13,color:T.orange,fontFamily:"'Sora',sans-serif",fontWeight:700,marginBottom:4}}>
+                ⏳ API rate limit hit — retrying automatically
+              </div>
+              <div style={{fontSize:12,color:T.ink2,fontFamily:"'DM Sans',sans-serif",marginBottom:10}}>
+                Attempt {attempt} of {maxR} · Resuming in
+              </div>
+              <div style={{fontSize:40,fontFamily:"'Sora',sans-serif",fontWeight:800,color:T.orange,lineHeight:1}}>
+                {countdown}s
+              </div>
+              <div style={{marginTop:10,height:4,background:T.border,borderRadius:2,overflow:"hidden"}}>
+                <div style={{height:"100%",background:T.orange,borderRadius:2,width:`${(parseInt(countdown)/20)*100}%`,transition:"width 1s linear"}}/>
+              </div>
+            </div>
+          ) : (
+            <p style={{fontSize:13,color:T.ink3,marginBottom:28,fontFamily:"'DM Sans',sans-serif"}}>Multi-source intelligence gathering in progress…</p>
+          )}
+
+          <div style={{textAlign:"left"}}>
+            {steps.map((s,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",background:"#fff",borderRadius:7,marginBottom:6,border:`1px solid ${i===steps.length-1?T.brandBorder:T.border}`,animation:"stepIn 0.35s ease"}}>
+                <span style={{fontSize:11,color:T.brand,fontFamily:"'Sora',sans-serif",animation:i===steps.length-1&&!isRateLimit?"pulse 1.3s ease infinite":"none"}}>{i===steps.length-1?"►":"✓"}</span>
+                <span style={{fontSize:12,color:i===steps.length-1?T.ink1:T.ink3,fontFamily:"'DM Sans',sans-serif"}}>{s}</span>
+              </div>
+            ))}
+          </div>
+          {!isRateLimit && <p style={{fontSize:11,color:T.ink4,marginTop:20,fontFamily:"'DM Sans',sans-serif"}}>Deep audit · 45–90 seconds</p>}
         </div>
-        <p style={{fontSize:11,color:T.ink4,marginTop:20,fontFamily:"'DM Sans',sans-serif"}}>Deep audit · 45–90 seconds</p>
       </div>
-    </div>
-  );
+    );
+  }
 
   /* ── ERROR ───────────────────────────────────────────────── */
-  if(phase==="error") return(
-    <div style={{...root,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <style>{GLOBAL_STYLES}</style>
-      <div style={{textAlign:"center",maxWidth:400,padding:"0 24px"}}>
-        <div style={{fontSize:40,marginBottom:16}}>⚠</div>
-        <h2 style={{fontFamily:"'Sora',sans-serif",fontSize:20,marginBottom:10,color:T.red}}>Audit Failed</h2>
-        <p style={{fontSize:13,color:T.ink2,marginBottom:24,fontFamily:"'DM Sans',sans-serif"}}>{error}</p>
-        <button onClick={()=>setPhase("idle")} style={{background:`linear-gradient(135deg, ${T.brand} 0%, ${T.brandDark} 100%)`,color:"#fff",border:"none",borderRadius:8,padding:"10px 22px",fontSize:13,fontWeight:700,fontFamily:"'Sora',sans-serif",cursor:"pointer"}}>← Try Again</button>
+  if(phase==="error") {
+    const isRateLimitFinal = error === "rate_limit_exceeded";
+    return(
+      <div style={{...root,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <style>{GLOBAL_STYLES}</style>
+        <div style={{textAlign:"center",maxWidth:440,padding:"0 clamp(16px,4vw,24px)"}}>
+
+          {isRateLimitFinal ? (
+            <>
+              <div style={{fontSize:44,marginBottom:16}}>⏱</div>
+              <h2 style={{fontFamily:"'Sora',sans-serif",fontSize:20,marginBottom:10,color:T.orange}}>API Rate Limit Reached</h2>
+              <div style={{background:T.orangeFaint,border:`1px solid ${T.orangeBorder}`,borderRadius:10,padding:"16px 20px",marginBottom:20,textAlign:"left"}}>
+                <p style={{fontSize:13,color:T.ink2,lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",marginBottom:8}}>
+                  The Groq API has temporarily rate-limited this request after 3 retry attempts. This usually happens when too many audits are run in quick succession.
+                </p>
+                <p style={{fontSize:13,color:T.ink2,lineHeight:1.7,fontFamily:"'DM Sans',sans-serif"}}>
+                  <strong style={{fontFamily:"'Sora',sans-serif",color:T.orange}}>What to do:</strong> Wait 1–2 minutes before running another audit, or check your Groq API quota at <a href="https://console.groq.com" target="_blank" rel="noreferrer" style={{color:T.brand}}>console.groq.com</a>.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{fontSize:44,marginBottom:16}}>⚠</div>
+              <h2 style={{fontFamily:"'Sora',sans-serif",fontSize:20,marginBottom:10,color:T.red}}>Audit Failed</h2>
+              <p style={{fontSize:13,color:T.ink2,marginBottom:20,fontFamily:"'DM Sans',sans-serif",background:T.redFaint,border:`1px solid ${T.redBorder}`,borderRadius:8,padding:"12px 16px"}}>
+                {error}
+              </p>
+            </>
+          )}
+
+          <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+            <button
+              onClick={()=>{setPhase("idle");setError("");}}
+              style={{background:"#fff",color:T.brand,border:`1.5px solid ${T.brand}`,borderRadius:8,padding:"10px 20px",fontSize:13,fontWeight:600,fontFamily:"'Sora',sans-serif",cursor:"pointer"}}
+            >
+              ← Back
+            </button>
+            <button
+              onClick={()=>{setError("");runAudit();}}
+              style={{background:`linear-gradient(135deg, ${T.brand} 0%, ${T.brandDark} 100%)`,color:"#ffffff",border:"none",borderRadius:8,padding:"10px 22px",fontSize:13,fontWeight:700,fontFamily:"'Sora',sans-serif",cursor:"pointer"}}
+            >
+              ↺ Retry Audit
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   /* ══════════════════════════════════════════════════════════
      COMPLETE — REPORT VIEW
@@ -467,7 +656,6 @@ export default function EVPAuditTool() {
   const rfCount = R?DIMS.filter(d=>R.dimensions?.[d.key]?.is_red_flag).length:0;
   const barData = R?DIMS.map(d=>({name:d.short,score:R.dimensions?.[d.key]?.score??0,industry:R.dimensions?.[d.key]?.industry_average??0})):[];
   const today   = new Date().toLocaleDateString("en-IN",{day:"numeric",month:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"});
-  const totalSources = R ? Object.values(R.sources||{}).reduce((a,arr)=>a+(arr?.length??0),0) : 0;
 
   return (
     <div style={root} ref={reportRef}>
@@ -486,29 +674,39 @@ export default function EVPAuditTool() {
         zIndex:100,
         height:52,
         gap:8,
+        minWidth:0,
       }}>
         {/* Left: Logo + company */}
-        <div style={{display:"flex",alignItems:"center",gap:clamp(8,16)}}>
-          <InvokBizLogo size={24}/>
-          <span style={{color:T.border,margin:"0 4px"}}>·</span>
-          <span style={{fontFamily:"'Sora',sans-serif",fontSize:"clamp(12px,2.5vw,14px)",fontWeight:700,color:T.ink1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"clamp(80px,20vw,200px)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
+          <InvokBizLogo size={35}/>
+          <span style={{color:T.border,margin:"0 2px",flexShrink:0}}>·</span>
+          <span style={{
+            fontFamily:"'Sora',sans-serif",
+            fontSize:"clamp(11px,2.5vw,14px)",
+            fontWeight:700,
+            color:T.ink1,
+            whiteSpace:"nowrap",
+            overflow:"hidden",
+            textOverflow:"ellipsis",
+            minWidth:0,
+          }}>
             {R?.company_name}
           </span>
           {rfCount>0 && (
-            <span style={{fontSize:10,color:T.red,background:T.redFaint,border:`1px solid ${T.redBorder}`,padding:"2px 8px",borderRadius:10,fontFamily:"'Sora',sans-serif",fontWeight:600,whiteSpace:"nowrap"}}>
+            <span className="hide-xs" style={{fontSize:10,color:T.red,background:T.redFaint,border:`1px solid ${T.redBorder}`,padding:"2px 8px",borderRadius:10,fontFamily:"'Sora',sans-serif",fontWeight:600,whiteSpace:"nowrap",flexShrink:0}}>
               ⚑ {rfCount} flag{rfCount>1?"s":""}
             </span>
           )}
         </div>
 
         {/* Right: weighted + new audit */}
-        <div style={{display:"flex",gap:clamp(6,12),alignItems:"center",flexShrink:0}}>
-          <span style={{fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif"}} className="hide-mobile">
+        <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+          <span className="hide-sm" style={{fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>
             Weighted: <span style={{color:scoreColor(wScore),fontWeight:700,fontFamily:"'Sora',sans-serif"}}>{wScore}</span>
           </span>
           <button
             onClick={()=>{setPhase("idle");setCompany("");setWebsiteUrl("");}}
-            style={{background:"#fff",color:T.brand,border:`1.5px solid ${T.brand}`,borderRadius:6,padding:"5px clamp(8px,2vw,13px)",fontSize:"clamp(9px,2vw,11px)",fontFamily:"'Sora',sans-serif",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}
+            style={{background:"#fff",color:T.brand,border:`1.5px solid ${T.brand}`,borderRadius:6,padding:"5px 12px",fontSize:"clamp(9px,2vw,11px)",fontFamily:"'Sora',sans-serif",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}
           >
             ← New Audit
           </button>
@@ -539,18 +737,27 @@ export default function EVPAuditTool() {
         <div className="report-section">
           <SectionLabel n={1} title="Overall Attractiveness Index"/>
 
-          <div style={{display:"flex",gap:clamp(16,28),alignItems:"flex-start",flexWrap:"wrap",marginBottom:24}}>
-            {/* Big score */}
-            <div style={{background:"#fff",border:`1px solid ${T.border}`,borderRadius:12,padding:"24px clamp(16px,4vw,28px)",minWidth:clamp(160,180),textAlign:"center",flexShrink:0}} className="full-mobile">
+          {/* Score + summary: stack on mobile */}
+          <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap",marginBottom:24}}>
+            {/* Big score card */}
+            <div style={{
+              background:"#fff",border:`1px solid ${T.border}`,borderRadius:12,
+              padding:"24px clamp(14px,3vw,28px)",
+              minWidth:170,
+              textAlign:"center",
+              flexShrink:0,
+              width:"100%",
+              maxWidth:220,
+            }} className="full-sm">
               <div style={{fontSize:11,color:T.ink4,fontFamily:"'Sora',sans-serif",marginBottom:6,letterSpacing:"0.08em",fontWeight:600,textTransform:"uppercase"}}>Overall Score</div>
-              <div style={{fontSize:"clamp(52px,10vw,72px)",fontFamily:"'Sora',sans-serif",fontWeight:800,color:scoreColor(R?.overall_score??0),lineHeight:1}}>{R?.overall_score??0}</div>
+              <div style={{fontSize:"clamp(48px,10vw,72px)",fontFamily:"'Sora',sans-serif",fontWeight:800,color:scoreColor(R?.overall_score??0),lineHeight:1}}>{R?.overall_score??0}</div>
               <div style={{fontSize:12,color:T.ink3,marginTop:2,fontFamily:"'DM Sans',sans-serif"}}>/ 100 · simple avg</div>
-              <div style={{display:"inline-block",marginTop:10,background:`linear-gradient(135deg, ${T.brand} 0%, ${T.brandDark} 100%)`,color:"#fff",borderRadius:6,padding:"4px 14px",fontSize:14,fontWeight:700,fontFamily:"'Sora',sans-serif"}}>
+              <div style={{display:"inline-block",marginTop:10,background:`linear-gradient(135deg, ${T.brand} 0%, ${T.brandDark} 100%)`,color:"#ffffff",borderRadius:6,padding:"4px 14px",fontSize:14,fontWeight:700,fontFamily:"'Sora',sans-serif"}}>
                 Grade {R?.grade||gradeFromScore(R?.overall_score??0)}
               </div>
-              <div style={{marginTop:14,display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+              <div style={{marginTop:14,display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
                 {[["CLAIMED",R?.overall_claimed_score??0,T.brand],["CREDIBILITY",R?.credibility_index??0,scoreColor(R?.credibility_index??0)],["WEIGHTED",wScore,scoreColor(wScore)]].map(([lbl,val,col])=>(
-                  <div key={lbl} style={{textAlign:"center"}}>
+                  <div key={lbl} style={{textAlign:"center",minWidth:52}}>
                     <div style={{fontSize:9,color:T.ink4,fontFamily:"'Sora',sans-serif",fontWeight:600,letterSpacing:"0.06em"}}>{lbl}</div>
                     <div style={{fontSize:18,fontFamily:"'Sora',sans-serif",fontWeight:700,color:col}}>{val}</div>
                   </div>
@@ -559,7 +766,7 @@ export default function EVPAuditTool() {
             </div>
 
             {/* Summary + bar chart */}
-            <div style={{flex:1,minWidth:clamp(240,260)}}>
+            <div style={{flex:1,minWidth:240}}>
               <p style={{fontSize:13,color:T.ink2,lineHeight:1.8,marginBottom:20,fontFamily:"'DM Sans',sans-serif"}}>{R?.audit_summary}</p>
               <div style={{background:"#fff",border:`1px solid ${T.border}`,borderRadius:10,padding:"16px clamp(10px,3vw,14px)"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:6}}>
@@ -583,24 +790,61 @@ export default function EVPAuditTool() {
             </div>
           </div>
 
-          {/* Weighted score config toggle */}
+          {/* ── Weighted score config — FIXED ALIGNMENT ── */}
           <div style={{background:"#fff",border:`1px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
-            <button onClick={()=>setShowWeights(o=>!o)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:12,color:T.ink3}}>
-              <span>⚖ Configure Weighted Score — current: <strong style={{color:scoreColor(wScore),fontFamily:"'Sora',sans-serif"}}>{wScore}</strong> ({scoreLabel(wScore)})</span>
-              <span>{showWeights?"▲":"▼"}</span>
+            <button
+              onClick={()=>setShowWeights(o=>!o)}
+              style={{
+                width:"100%",
+                display:"flex",
+                justifyContent:"space-between",
+                alignItems:"center",
+                padding:"12px 18px",
+                background:"none",
+                border:"none",
+                cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif",
+                fontSize:12,
+                color:T.ink3,
+                gap:8,
+              }}
+            >
+              <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:T.ink3,textAlign:"left"}}>
+                ⚖ Configure Weighted Score — current:{" "}
+                <strong style={{color:scoreColor(wScore),fontFamily:"'Sora',sans-serif"}}>{wScore}</strong>
+                {" "}({scoreLabel(wScore)})
+              </span>
+              <span style={{flexShrink:0}}>{showWeights?"▲":"▼"}</span>
             </button>
+
             {showWeights&&(
               <div style={{padding:"16px 18px",borderTop:`1px solid ${T.border}`}}>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"10px 24px"}}>
+                <div style={{
+                  display:"grid",
+                  gridTemplateColumns:"repeat(auto-fit, minmax(260px, 1fr))",
+                  gap:"10px 24px",
+                }}>
                   {DIMS.map(d=>(
-                    <div key={d.key} style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontSize:12,color:T.ink2,minWidth:110,fontFamily:"'DM Sans',sans-serif"}}>{d.short}</span>
-                      <input type="range" min={0} max={40} value={weights[d.key]??d.weight} onChange={e=>setWeights(w=>({...w,[d.key]:parseInt(e.target.value)}))} style={{flex:1,accentColor:T.brand}}/>
-                      <span style={{fontSize:11,fontFamily:"'Sora',sans-serif",color:T.brand,fontWeight:600,minWidth:28,textAlign:"right"}}>{normW[d.key]}%</span>
+                    <div key={d.key} className="weight-row">
+                      <span className="weight-label">{d.short}</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={40}
+                        value={weights[d.key]??d.weight}
+                        onChange={e=>setWeights(w=>({...w,[d.key]:parseInt(e.target.value)}))}
+                        className="weight-slider"
+                      />
+                      <span className="weight-pct">{normW[d.key]}%</span>
                     </div>
                   ))}
                 </div>
-                <button onClick={()=>setWeights(defW)} style={{marginTop:10,background:"none",border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 12px",fontSize:11,color:T.ink3,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>reset defaults</button>
+                <button
+                  onClick={()=>setWeights(defW)}
+                  style={{marginTop:12,background:"none",border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 12px",fontSize:11,color:T.ink3,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}
+                >
+                  reset defaults
+                </button>
               </div>
             )}
           </div>
@@ -618,11 +862,11 @@ export default function EVPAuditTool() {
             const vs = dim.score-(dim.industry_average||0);
             return(
               <div key={d.key} style={{background:"#fff",border:`1px solid ${dim.is_red_flag?T.redBorder:T.border}`,borderRadius:12,padding:"clamp(14px,3vw,22px) clamp(16px,4vw,24px)",marginBottom:12,position:"relative"}}>
-                <div style={{position:"absolute",top:22,right:22,fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif"}} className="hide-mobile">{String(idx+1).padStart(2,"0")} / 0{DIMS.length}</div>
+                <div className="hide-sm" style={{position:"absolute",top:22,right:22,fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif"}}>{String(idx+1).padStart(2,"0")} / 0{DIMS.length}</div>
 
-                <div style={{display:"flex",alignItems:"flex-start",gap:clamp(10,16),marginBottom:14,flexWrap:"wrap"}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:16,marginBottom:14,flexWrap:"wrap"}}>
                   <div style={{textAlign:"center",minWidth:56}}>
-                    <div style={{fontSize:"clamp(32px,7vw,40px)",fontFamily:"'Sora',sans-serif",fontWeight:800,color:scoreColor(dim.score),lineHeight:1}}>{dim.score}</div>
+                    <div style={{fontSize:"clamp(30px,7vw,40px)",fontFamily:"'Sora',sans-serif",fontWeight:800,color:scoreColor(dim.score),lineHeight:1}}>{dim.score}</div>
                     <div style={{fontSize:9,color:scoreColor(dim.score),fontFamily:"'Sora',sans-serif",marginTop:2,textTransform:"uppercase",fontWeight:600}}>{scoreLabel(dim.score)}</div>
                   </div>
                   <div style={{flex:1,minWidth:200}}>
@@ -650,7 +894,7 @@ export default function EVPAuditTool() {
                   </div>
                 )}
 
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}} className="grid-1-mobile">
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}} className="grid1-sm">
                   <div>
                     <div style={{fontSize:10,color:T.green,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",marginBottom:8,fontWeight:600}}>STRENGTHS</div>
                     {(dim.strengths||[]).length===0
@@ -705,13 +949,13 @@ export default function EVPAuditTool() {
             return(
               <div key={d.key} style={{marginBottom:10,border:`1px solid ${alignBorder(ac)}`,borderRadius:10,overflow:"hidden"}}>
                 <div style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",background:alignBg(ac),flexWrap:"wrap"}}>
-                  <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:T.ink4}} className="hide-mobile">{String(i+1).padStart(2,"0")} · Dimension</span>
+                  <span className="hide-sm" style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:T.ink4}}>{String(i+1).padStart(2,"0")} · Dimension</span>
                   <span style={{fontWeight:700,color:T.ink1,flex:1,fontFamily:"'Sora',sans-serif",fontSize:13}}>{dim.label}</span>
                   <span style={{fontSize:11,fontWeight:700,color:alignColor(ac),fontFamily:"'Sora',sans-serif",textTransform:"capitalize",background:"#fff",padding:"3px 10px",borderRadius:10,border:`1px solid ${alignBorder(ac)}`,whiteSpace:"nowrap"}}>
                     {ac==="aligned"?"Aligned":ac==="partial"?"Partial":"Misaligned"}
                   </span>
                 </div>
-                <div style={{padding:"14px 16px",background:"#fff",display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}} className="grid-1-mobile">
+                <div style={{padding:"14px 16px",background:"#fff",display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}} className="grid1-sm">
                   <div>
                     <div style={{fontSize:10,color:T.brand,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",marginBottom:5,fontWeight:600}}>THE CLAIM</div>
                     <p style={{fontSize:12,color:T.ink2,lineHeight:1.7,fontFamily:"'DM Sans',sans-serif"}}>{dim.the_claim||"—"}</p>
@@ -740,7 +984,7 @@ export default function EVPAuditTool() {
           {(R?.priority_interventions||[]).map((s,i)=>(
             <div key={i} style={{display:"flex",gap:14,padding:"clamp(10px,3vw,14px) 16px",background:"#fff",border:`1px solid ${T.border}`,borderRadius:9,marginBottom:8}}>
               <div style={{minWidth:32,height:32,borderRadius:"50%",background:i===0?T.red:i===1?T.orange:i===2?T.yellow:T.brandFaint,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <span style={{fontSize:12,fontWeight:700,color:i<=2?"#fff":T.brand,fontFamily:"'Sora',sans-serif"}}>{String(i+1).padStart(2,"0")}</span>
+                <span style={{fontSize:12,fontWeight:700,color:i<=2?"#ffffff":T.brand,fontFamily:"'Sora',sans-serif"}}>{String(i+1).padStart(2,"0")}</span>
               </div>
               <p style={{fontSize:13,color:T.ink1,lineHeight:1.7,paddingTop:4,fontFamily:"'DM Sans',sans-serif"}}>{s}</p>
             </div>
@@ -770,7 +1014,7 @@ export default function EVPAuditTool() {
             const td=[{t:"~2022",score:s3},{t:"~2024",score:s1},{t:"Now",score:sN}];
 
             return(<>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8,marginBottom:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:16}}>
                 {[["3 yrs → 1 yr",s1-s3],["1 yr → Now",sN-s1],["Net (3y)",netDelta]].map(([lbl,d])=>(
                   <div key={lbl} style={{background:"#fff",border:`1px solid ${T.border}`,borderRadius:8,padding:"11px 14px",textAlign:"center"}}>
                     <div style={{fontSize:10,color:T.ink4,fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>{lbl}</div>
@@ -785,7 +1029,7 @@ export default function EVPAuditTool() {
                   const data=L[p.key]; if(!data)return null;
                   const tc=tColor(data.trajectory);
                   return(
-                    <div key={p.key} style={{flex:1,minWidth:clamp(160,200),background:"#fff",border:`1px solid ${T.border}`,borderRadius:10,padding:"clamp(12px,3vw,16px) clamp(14px,3vw,18px)"}}>
+                    <div key={p.key} style={{flex:"1 1 200px",minWidth:160,background:"#fff",border:`1px solid ${T.border}`,borderRadius:10,padding:"clamp(12px,3vw,16px) clamp(14px,3vw,18px)"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                         <div>
                           <div style={{fontSize:10,color:T.ink4,fontFamily:"'DM Sans',sans-serif",marginBottom:2}}>{data.period}</div>
@@ -837,63 +1081,18 @@ export default function EVPAuditTool() {
           })()}
         </div>
 
-        <Divider/>
-
-        {/* ─── § 06  Methodology ─────────────────────────────── */}
-        <div className="report-section">
-          <SectionLabel n={6} title="Methodology"/>
-          <div style={{fontSize:13,color:T.ink3,marginBottom:18,fontFamily:"'DM Sans',sans-serif"}}>Signals inspected — <strong style={{color:T.ink1,fontFamily:"'Sora',sans-serif"}}>{totalSources} sources</strong></div>
-
-          {R?.sources&&(()=>{
-            const cats = [
-              {key:"website",label:"Website",icon:"🌐"},
-              {key:"news",label:"News",icon:"📰"},
-              {key:"reviews",label:"Employee Reviews",icon:"⭐"},
-              {key:"social",label:"Social / Discussion",icon:"💬"},
-            ];
-            return(
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:12}}>
-                {cats.map(cat=>{
-                  const items = R.sources[cat.key]||[]; if(items.length===0)return null;
-                  return(
-                    <div key={cat.key} style={{background:"#fff",border:`1px solid ${T.border}`,borderRadius:10,padding:"14px 16px"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-                        <span style={{fontSize:14}}>{cat.icon}</span>
-                        <span style={{fontSize:12,fontWeight:700,color:T.ink1,fontFamily:"'Sora',sans-serif"}}>{cat.label}</span>
-                        <span style={{fontSize:11,color:T.ink4,marginLeft:"auto",fontFamily:"'DM Sans',sans-serif"}}>{items.length}</span>
-                      </div>
-                      {items.map((src,i)=>(
-                        <div key={i} style={{fontSize:11,color:T.ink2,marginBottom:6,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:"'DM Sans',sans-serif"}}>
-                          {src.url
-                            ?<a href={src.url} target="_blank" rel="noreferrer" style={{color:T.brand}}>{src.label||src.url}</a>
-                            :<span>{src.label||src}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-
-          {/* Footer */}
-          <div style={{marginTop:24,padding:"16px 20px",background:`linear-gradient(135deg, ${T.brand}08 0%, ${T.brandFaint} 100%)`,border:`1px solid ${T.brandBorder}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <InvokBizLogo size={22}/>
-              <span style={{fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif"}}>· EVP Intelligence Platform</span>
-            </div>
-            <div style={{fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif",textAlign:"right"}}>
-              Report: <span style={{color:T.ink2,fontFamily:"'Sora',sans-serif",fontWeight:600}}>{R?.company_name}</span> · {today}
-            </div>
+        {/* ─── Report footer ─────────────────────────────────── */}
+        <div style={{marginTop:32,padding:"16px 20px",background:`linear-gradient(135deg, ${T.brand}08 0%, ${T.brandFaint} 100%)`,border:`1px solid ${T.brandBorder}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <InvokBizLogo size={22}/>
+            <span style={{fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif"}}>· EVP Intelligence Platform</span>
+          </div>
+          <div style={{fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif",textAlign:"right"}}>
+            Report: <span style={{color:T.ink2,fontFamily:"'Sora',sans-serif",fontWeight:600}}>{R?.company_name}</span> · {today}
           </div>
         </div>
 
       </div>{/* /report container */}
     </div>
   );
-}
-
-// Helper to clamp values
-function clamp(min, max) {
-  return `clamp(${min}px, ${((min+max)/2/10).toFixed(1)}vw, ${max}px)`;
 }
