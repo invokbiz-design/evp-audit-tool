@@ -49,6 +49,10 @@ const tColor     = t => t==="improving"?T.green:t==="declining"?T.red:T.yellow;
 const clampW     = w => { const s=Object.values(w).reduce((a,b)=>a+b,0)||1; return Object.fromEntries(Object.entries(w).map(([k,v])=>[k,Math.round(v/s*100)])); };
 const calcWeighted = (dims,weights) => { let t=0,ws=0; DIMS.forEach(d=>{t+=(dims[d.key]?.score??0)*(weights[d.key]??d.weight);ws+=weights[d.key]??d.weight;}); return ws?Math.round(t/ws):0; };
 
+/* ─── Google Sheets Web App URL ────────────────────────────── */
+/* Replace this with your deployed Google Apps Script Web App URL */
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzs_WYTtGzZ38lP_m_ewnI0LaS64dKsPa63HFR_qalrTc4FVeYWYtgR_fmBvQIiW-6RcA/exec";
+
 /* ─── InvokBiz Logo ─────────────────────────────────── */
 const InvokBizLogo = ({ size = 28 }) => (
   <img
@@ -190,7 +194,6 @@ const GLOBAL_STYLES = `
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ── Font enforcement — all text uses Sora or DM Sans ── */
   h1, h2, h3, h4, h5, h6,
   .sora, [data-sora] {
     font-family: 'Sora', sans-serif;
@@ -199,11 +202,9 @@ const GLOBAL_STYLES = `
   .dm, [data-dm] {
     font-family: 'DM Sans', sans-serif;
   }
-  /* Override: elements explicitly flagged as Sora */
   .font-sora { font-family: 'Sora', sans-serif !important; }
   .font-dm   { font-family: 'DM Sans', sans-serif !important; }
 
-  /* ── Brand colour enforcement ── */
   .brand-color  { color: #d96029 !important; }
   .brand-bg     { background: #d96029 !important; }
   .white-color  { color: #ffffff !important; }
@@ -227,7 +228,6 @@ const GLOBAL_STYLES = `
   ::-webkit-scrollbar-track { background: #f1f5f9; }
   ::-webkit-scrollbar-thumb { background: #d96029; border-radius: 10px; }
 
-  /* ── Responsive ── */
   @media (max-width: 480px) {
     .hide-xs { display: none !important; }
     .stack-xs { flex-direction: column !important; }
@@ -253,7 +253,6 @@ const GLOBAL_STYLES = `
     .hide-lg { display: none !important; }
   }
 
-  /* ── Weight slider row ── */
   .weight-row {
     display: flex;
     align-items: center;
@@ -288,7 +287,6 @@ const GLOBAL_STYLES = `
     .weight-pct   { flex: 0 0 28px; font-size: 10px; }
   }
 
-  /* ── Placeholder styling ── */
   ::placeholder {
     font-family: 'DM Sans', sans-serif;
     color: #94a3b8;
@@ -350,21 +348,274 @@ function RubricToggle({ dimKey, score }) {
   );
 }
 
+/* ─── AI Disclaimer ─────────────────────────────────────────── */
+const AIDisclaimer = () => (
+  <div style={{
+    display:"flex",
+    alignItems:"center",
+    justifyContent:"center",
+    gap:6,
+    padding:"8px 14px",
+    background:"#f8fafc",
+    borderTop:`1px solid ${T.border}`,
+  }}>
+    <span style={{fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif",textAlign:"center",lineHeight:1.5}}>
+      ✦ This tool is powered by AI and AI can occasionally make mistakes. Please verify important information before use.
+    </span>
+  </div>
+);
+
+/* ─── Lead Capture Form ─────────────────────────────────────── */
+function LeadForm({ companyToAudit, onSubmit }) {
+  const [form, setForm] = useState({ fullName:"", currentCompany:"", workEmail:"" });
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const isValidWorkEmail = (email) => {
+    const personalDomains = ["gmail.com","yahoo.com","hotmail.com","outlook.com","icloud.com","rediffmail.com","ymail.com"];
+    const parts = email.toLowerCase().split("@");
+    if(parts.length !== 2) return false;
+    return !personalDomains.includes(parts[1]);
+  };
+
+  const handleSubmit = async () => {
+    const { fullName, currentCompany, workEmail } = form;
+    if(!fullName.trim() || !currentCompany.trim() || !workEmail.trim()) {
+      setFormError("All fields are required."); return;
+    }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(workEmail)) {
+      setFormError("Please enter a valid email address."); return;
+    }
+    if(!isValidWorkEmail(workEmail)) {
+      setFormError("Please use your work email address (not Gmail, Yahoo, etc.)."); return;
+    }
+    setFormError("");
+    setSubmitting(true);
+
+    // Submit to Google Sheets
+    try {
+      const payload = {
+        timestamp: new Date().toISOString(),
+        fullName: fullName.trim(),
+        currentCompany: currentCompany.trim(),
+        workEmail: workEmail.trim(),
+        auditCompany: companyToAudit || "",
+      };
+      // Fire-and-forget — don't block audit on sheet submission
+      fetch(GOOGLE_SHEET_URL, {
+        method:"POST",
+        mode:"no-cors",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(payload),
+      }).catch(()=>{});
+    } catch(_) {}
+
+    setSubmitting(false);
+    onSubmit(form);
+  };
+
+  const inputStyle = {
+    padding:"13px 16px",
+    fontSize:14,
+    border:`1.5px solid ${T.border}`,
+    borderRadius:10,
+    color:T.ink1,
+    background:"#fff",
+    fontFamily:"'DM Sans',sans-serif",
+    transition:"border-color 0.2s",
+    width:"100%",
+  };
+
+  const labelStyle = {
+    fontSize:11,
+    color:T.ink3,
+    fontFamily:"'Sora',sans-serif",
+    letterSpacing:"0.08em",
+    fontWeight:600,
+    textTransform:"uppercase",
+    marginBottom:5,
+    display:"block",
+  };
+
+  return (
+    <div style={{
+      width:"100%",
+      maxWidth:680,
+      padding:"clamp(24px,5vw,60px) clamp(16px,4vw,32px)",
+      animation:"fadeUp 0.7s ease",
+      textAlign:"center",
+    }}>
+
+      {/* Logo pill */}
+      <div style={{display:"flex",justifyContent:"center",marginBottom:32}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,background:T.white,border:`1px solid ${T.brandBorder}`,borderRadius:40,padding:"8px 20px 8px 12px",boxShadow:`0 2px 12px rgba(217,96,41,0.12)`}}>
+          <InvokBizLogo size={28} />
+          <span style={{width:1,height:18,background:T.borderDark,margin:"0 2px"}}/>
+          <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:T.ink4,letterSpacing:"0.08em",fontWeight:500}}>EVP INTELLIGENCE</span>
+        </div>
+      </div>
+
+      {/* Heading */}
+      <div style={{marginBottom:8}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:T.brandFaint,border:`1px solid ${T.brandBorder}`,borderRadius:20,padding:"4px 14px",marginBottom:16}}>
+          <span style={{fontSize:11,color:T.brand,fontFamily:"'Sora',sans-serif",fontWeight:600,letterSpacing:"0.04em"}}>ONE LAST STEP</span>
+        </div>
+        <h2 style={{fontFamily:"'Sora',sans-serif",fontSize:"clamp(22px,5vw,34px)",fontWeight:800,letterSpacing:"-0.03em",color:T.ink1,lineHeight:1.1,marginBottom:10}}>
+          Your audit is ready.<br/>
+          <span style={{color:T.brand}}>Who should we send it to?</span>
+        </h2>
+        <p style={{fontSize:"clamp(12px,2.5vw,14px)",color:T.ink3,lineHeight:1.7,maxWidth:460,margin:"0 auto",fontFamily:"'DM Sans',sans-serif"}}>
+          Enter your details to access the full EVP report for <strong style={{color:T.ink1,fontFamily:"'Sora',sans-serif"}}>{companyToAudit}</strong>. Takes 10 seconds.
+        </p>
+      </div>
+
+      {/* Form card */}
+      <div style={{
+        background:T.white,
+        border:`1px solid ${T.border}`,
+        borderRadius:16,
+        padding:"clamp(20px,4vw,32px)",
+        boxShadow:"0 4px 24px rgba(0,0,0,0.06)",
+        maxWidth:480,
+        margin:"24px auto 0",
+        textAlign:"left",
+      }}>
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+          <div>
+            <label style={labelStyle}>Your Full Name <span style={{color:T.red}}>*</span></label>
+            <input
+              value={form.fullName}
+              onChange={e=>setForm(f=>({...f,fullName:e.target.value}))}
+              onKeyDown={e=>e.key==="Enter"&&handleSubmit()}
+              placeholder="e.g. Priya Sharma"
+              style={inputStyle}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Your Current Company <span style={{color:T.red}}>*</span></label>
+            <input
+              value={form.currentCompany}
+              onChange={e=>setForm(f=>({...f,currentCompany:e.target.value}))}
+              onKeyDown={e=>e.key==="Enter"&&handleSubmit()}
+              placeholder="e.g. Tata Consultancy Services"
+              style={inputStyle}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Work Email <span style={{color:T.red}}>*</span></label>
+            <input
+              value={form.workEmail}
+              onChange={e=>setForm(f=>({...f,workEmail:e.target.value}))}
+              onKeyDown={e=>e.key==="Enter"&&handleSubmit()}
+              placeholder="you@company.com"
+              type="email"
+              style={inputStyle}
+            />
+            <p style={{fontSize:11,color:T.ink4,marginTop:5,fontFamily:"'DM Sans',sans-serif"}}>Please use your work email, not a personal one.</p>
+          </div>
+
+          {formError && (
+            <div style={{background:T.redFaint,border:`1px solid ${T.redBorder}`,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontFamily:"'DM Sans',sans-serif"}}>
+              ⚠ {formError}
+            </div>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            style={{
+              padding:"14px",
+              background:`linear-gradient(135deg, ${T.brand} 0%, ${T.brandDark} 100%)`,
+              color:"#ffffff",
+              border:"none",
+              borderRadius:10,
+              fontSize:14,
+              fontWeight:700,
+              fontFamily:"'Sora',sans-serif",
+              cursor:submitting?"wait":"pointer",
+              letterSpacing:"0.04em",
+              boxShadow:`0 4px 16px rgba(217,96,41,0.35)`,
+              transition:"all 0.2s",
+              marginTop:4,
+              width:"100%",
+              opacity:submitting?0.7:1,
+            }}
+          >
+            {submitting ? "Submitting…" : "View My Audit Report ▶"}
+          </button>
+
+          <p style={{fontSize:11,color:T.ink4,textAlign:"center",lineHeight:1.6,fontFamily:"'DM Sans',sans-serif",marginTop:-4}}>
+            🔒 Your details are kept private and used only to improve InvokBiz services.
+          </p>
+        </div>
+      </div>
+
+      {/* Feature pills */}
+      <div style={{display:"flex",justifyContent:"center",gap:10,marginTop:24,flexWrap:"wrap"}}>
+        {["No spam, ever","Work email only","Data stays private"].map(s=>(
+          <span key={s} style={{fontSize:10,color:T.ink4,fontFamily:"'DM Sans',sans-serif",background:"#fff",border:`1px solid ${T.border}`,padding:"4px 10px",borderRadius:20}}>✓ {s}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main component ─────────────────────────────────────── */
 export default function EVPAuditTool() {
   const [company,    setCompany]    = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
-  const [phase,      setPhase]      = useState("idle");
+  const [phase,      setPhase]      = useState("idle");   // idle | researching | complete | error
   const [steps,      setSteps]      = useState([]);
   const [results,    setResults]    = useState(null);
   const [error,      setError]      = useState("");
+  // Lead fields — on the home screen
+  const [fullName,       setFullName]       = useState("");
+  const [currentCompany, setCurrentCompany] = useState("");
+  const [workEmail,      setWorkEmail]      = useState("");
+  const [formError,      setFormError]      = useState("");
   const defW = Object.fromEntries(DIMS.map(d=>[d.key,d.weight]));
   const [weights, setWeights] = useState(defW);
   const [showWeights, setShowWeights] = useState(false);
   const reportRef = useRef(null);
 
+  const isValidWorkEmail = (email) => {
+    const blocked = ["gmail.com","yahoo.com","hotmail.com","outlook.com","icloud.com","rediffmail.com","ymail.com","live.com","msn.com"];
+    const parts = email.toLowerCase().split("@");
+    return parts.length === 2 && !blocked.includes(parts[1]);
+  };
+
+  const handleLaunchClick = () => {
+    if(!company.trim() || !fullName.trim() || !currentCompany.trim() || !workEmail.trim()) {
+      setFormError("Please fill in all required fields."); return;
+    }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(workEmail)) {
+      setFormError("Please enter a valid email address."); return;
+    }
+    if(!isValidWorkEmail(workEmail)) {
+      setFormError("Please use your work email address (not Gmail, Yahoo, etc.)."); return;
+    }
+    setFormError("");
+    // Fire-and-forget to Google Sheets
+    try {
+      fetch(GOOGLE_SHEET_URL, {
+        method:"POST", mode:"no-cors",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          timestamp: new Date().toISOString(),
+          fullName: fullName.trim(),
+          currentCompany: currentCompany.trim(),
+          workEmail: workEmail.trim(),
+          auditCompany: company.trim(),
+        }),
+      }).catch(()=>{});
+    } catch(_) {}
+    runAudit();
+  };
+
   const runAudit = async () => {
-    if(!company.trim())return;
     setPhase("researching"); setSteps([]); setResults(null); setError("");
     const websiteClause = websiteUrl.trim()
       ? `The company's website URL is: ${websiteUrl.trim()} — fetch this URL directly as your first step, then also fetch the /about, /careers, /jobs sub-pages if they exist.`
@@ -382,7 +633,7 @@ export default function EVPAuditTool() {
     for(let i=0;i<pSteps.length;i++){await new Promise(r=>setTimeout(r,750));setSteps(p=>[...p,pSteps[i]]);}
 
     const MAX_RETRIES = 3;
-    const RETRY_DELAY = 20; // seconds to wait on 429
+    const RETRY_DELAY = 20;
 
     const callAPI = async (attempt = 1) => {
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -402,13 +653,10 @@ export default function EVPAuditTool() {
         }),
       });
 
-      // Handle rate limit with retry
       if(res.status === 429) {
         if(attempt > MAX_RETRIES) throw new Error("rate_limit_exceeded");
-        // Get retry-after header if available, else use default
         const retryAfter = parseInt(res.headers.get("retry-after") || String(RETRY_DELAY));
         const waitSec = Math.min(retryAfter, 60);
-        // Countdown display
         for(let t = waitSec; t > 0; t--) {
           setError(`rate_limit_retry:${t}:${attempt}:${MAX_RETRIES}`);
           await new Promise(r => setTimeout(r, 1000));
@@ -465,69 +713,75 @@ export default function EVPAuditTool() {
         <div style={{background:T.white,border:`1px solid ${T.border}`,borderRadius:16,padding:"clamp(20px,4vw,32px)",boxShadow:"0 4px 24px rgba(0,0,0,0.06)",maxWidth:520,margin:"0 auto",textAlign:"left"}}>
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
 
-            <div style={{display:"flex",flexDirection:"column",gap:5}}>
-              <label style={{fontSize:11,color:T.ink3,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",fontWeight:600,textTransform:"uppercase"}}>Company Name *</label>
-              <input
-                value={company}
-                onChange={e=>setCompany(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&company.trim()&&runAudit()}
-                placeholder="e.g. Zomato, Infosys, HDFC Bank"
-                style={{
-                  padding:"13px 16px",
-                  fontSize:14,
-                  border:`1.5px solid ${T.border}`,
-                  borderRadius:10,
-                  color:T.ink1,
-                  background:"#fff",
-                  fontFamily:"'DM Sans',sans-serif",
-                  transition:"border-color 0.2s",
-                  width:"100%",
-                }}
-              />
+            {/* ── Audit target section ── */}
+            <div style={{display:"flex",flexDirection:"column",gap:12,paddingBottom:16,borderBottom:`1px dashed ${T.border}`}}>
+              <div style={{fontSize:10,color:T.brand,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",fontWeight:700,textTransform:"uppercase",marginBottom:2}}>Company to Audit</div>
+
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                <label style={{fontSize:11,color:T.ink3,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",fontWeight:600,textTransform:"uppercase"}}>Company Name <span style={{color:T.red}}>*</span></label>
+                <input value={company} onChange={e=>setCompany(e.target.value)} placeholder="e.g. Zomato, Infosys, HDFC Bank"
+                  style={{padding:"13px 16px",fontSize:14,border:`1.5px solid ${T.border}`,borderRadius:10,color:T.ink1,background:"#fff",fontFamily:"'DM Sans',sans-serif",width:"100%"}}/>
+              </div>
+
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                <label style={{fontSize:11,color:T.ink3,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",fontWeight:600,textTransform:"uppercase"}}>
+                  Company Website <span style={{color:T.ink4,fontWeight:400,textTransform:"none",letterSpacing:"normal",fontSize:10}}>— optional</span>
+                </label>
+                <input value={websiteUrl} onChange={e=>setWebsiteUrl(e.target.value)} placeholder="https://company.com"
+                  style={{padding:"13px 16px",fontSize:14,border:`1.5px solid ${T.border}`,borderRadius:10,color:T.ink1,background:"#fff",fontFamily:"'DM Sans',sans-serif",width:"100%"}}/>
+              </div>
             </div>
 
-            <div style={{display:"flex",flexDirection:"column",gap:5}}>
-              <label style={{fontSize:11,color:T.ink3,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",fontWeight:600,textTransform:"uppercase"}}>
-                Company Website
-                <span style={{color:T.ink4,fontWeight:400,marginLeft:6,textTransform:"none",letterSpacing:"normal",fontSize:10}}>— optional, recommended</span>
-              </label>
-              <input
-                value={websiteUrl}
-                onChange={e=>setWebsiteUrl(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&company.trim()&&runAudit()}
-                placeholder="https://company.com"
-                style={{
-                  padding:"13px 16px",
-                  fontSize:14,
-                  border:`1.5px solid ${T.border}`,
-                  borderRadius:10,
-                  color:T.ink1,
-                  background:"#fff",
-                  fontFamily:"'DM Sans',sans-serif",
-                  width:"100%",
-                }}
-              />
+            {/* ── Your details section ── */}
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{fontSize:10,color:T.ink3,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",fontWeight:700,textTransform:"uppercase",marginBottom:2}}>Your Details</div>
 
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                <label style={{fontSize:11,color:T.ink3,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",fontWeight:600,textTransform:"uppercase"}}>Your Full Name <span style={{color:T.red}}>*</span></label>
+                <input value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="e.g. Priya Sharma"
+                  style={{padding:"13px 16px",fontSize:14,border:`1.5px solid ${T.border}`,borderRadius:10,color:T.ink1,background:"#fff",fontFamily:"'DM Sans',sans-serif",width:"100%"}}/>
+              </div>
+
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                <label style={{fontSize:11,color:T.ink3,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",fontWeight:600,textTransform:"uppercase"}}>Your Current Company <span style={{color:T.red}}>*</span></label>
+                <input value={currentCompany} onChange={e=>setCurrentCompany(e.target.value)} placeholder="e.g. Tata Consultancy Services"
+                  style={{padding:"13px 16px",fontSize:14,border:`1.5px solid ${T.border}`,borderRadius:10,color:T.ink1,background:"#fff",fontFamily:"'DM Sans',sans-serif",width:"100%"}}/>
+              </div>
+
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                <label style={{fontSize:11,color:T.ink3,fontFamily:"'Sora',sans-serif",letterSpacing:"0.08em",fontWeight:600,textTransform:"uppercase"}}>Work Email <span style={{color:T.red}}>*</span></label>
+                <input value={workEmail} onChange={e=>setWorkEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLaunchClick()} placeholder="you@company.com" type="email"
+                  style={{padding:"13px 16px",fontSize:14,border:`1.5px solid ${T.border}`,borderRadius:10,color:T.ink1,background:"#fff",fontFamily:"'DM Sans',sans-serif",width:"100%"}}/>
+                <span style={{fontSize:10,color:T.ink4,fontFamily:"'DM Sans',sans-serif"}}>Work email only — not Gmail, Yahoo, etc.</span>
+              </div>
             </div>
 
-            <button
-              onClick={runAudit}
-              disabled={!company.trim()}
-              style={{
-                padding:"14px",
-                background:company.trim()?`linear-gradient(135deg, ${T.brand} 0%, ${T.brandDark} 100%)`:"#e2e8f0",
-                color:company.trim()?"#ffffff":T.ink4,
-                border:"none",borderRadius:10,fontSize:14,fontWeight:700,
-                fontFamily:"'Sora',sans-serif",
-                cursor:company.trim()?"pointer":"not-allowed",
-                letterSpacing:"0.04em",
-                boxShadow:company.trim()?`0 4px 16px rgba(217,96,41,0.35)`:"none",
-                transition:"all 0.2s",marginTop:4,
-                width:"100%",
-              }}
-            >
-              Launch Audit ▶
-            </button>
+            {formError && (
+              <div style={{background:T.redFaint,border:`1px solid ${T.redBorder}`,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontFamily:"'DM Sans',sans-serif"}}>
+                ⚠ {formError}
+              </div>
+            )}
+
+            {(()=>{
+              const allFilled = company.trim()&&fullName.trim()&&currentCompany.trim()&&workEmail.trim();
+              return(
+                <button onClick={handleLaunchClick} disabled={!allFilled} style={{
+                  padding:"14px",
+                  background:allFilled?`linear-gradient(135deg, ${T.brand} 0%, ${T.brandDark} 100%)`:"#e2e8f0",
+                  color:allFilled?"#ffffff":T.ink4,
+                  border:"none",borderRadius:10,fontSize:14,fontWeight:700,
+                  fontFamily:"'Sora',sans-serif",
+                  cursor:allFilled?"pointer":"not-allowed",
+                  letterSpacing:"0.04em",
+                  boxShadow:allFilled?`0 4px 16px rgba(217,96,41,0.35)`:"none",
+                  transition:"all 0.2s",marginTop:4,width:"100%",
+                }}>Launch Audit ▶</button>
+              );
+            })()}
+
+            <p style={{fontSize:11,color:T.ink4,textAlign:"center",lineHeight:1.5,fontFamily:"'DM Sans',sans-serif",marginTop:-4}}>
+              🔒 Your details are kept private and used only to improve InvokBiz services.
+            </p>
           </div>
         </div>
 
@@ -538,19 +792,21 @@ export default function EVPAuditTool() {
           ))}
         </div>
       </div>
+
+      {/* AI Disclaimer */}
+      <AIDisclaimer />
     </div>
   );
 
   /* ── RESEARCHING ─────────────────────────────────────────── */
   if(phase==="researching") {
-    // Parse rate-limit countdown signal: "rate_limit_retry:seconds:attempt:max"
     const isRateLimit = error.startsWith("rate_limit_retry:");
     const [,countdown,attempt,maxR] = isRateLimit ? error.split(":") : [];
 
     return(
-      <div style={{...root,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{...root,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
         <style>{GLOBAL_STYLES}</style>
-        <div style={{maxWidth:520,width:"100%",padding:"0 clamp(16px,4vw,24px)",textAlign:"center"}}>
+        <div style={{maxWidth:520,width:"100%",padding:"0 clamp(16px,4vw,24px)",textAlign:"center",flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
           <div style={{position:"relative",width:56,height:56,margin:"0 auto 24px"}}>
             <div style={{width:56,height:56,border:`3px solid ${T.border}`,borderTopColor:isRateLimit?T.orange:T.brand,borderRadius:"50%",animation:"spin 1s linear infinite",position:"absolute"}}/>
             <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}>
@@ -563,7 +819,6 @@ export default function EVPAuditTool() {
           </h2>
           {websiteUrl&&<p style={{fontSize:12,color:T.ink4,fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>{websiteUrl}</p>}
 
-          {/* Rate-limit countdown banner */}
           {isRateLimit ? (
             <div style={{margin:"16px 0 24px",background:T.orangeFaint,border:`1px solid ${T.orangeBorder}`,borderRadius:10,padding:"14px 18px"}}>
               <div style={{fontSize:13,color:T.orange,fontFamily:"'Sora',sans-serif",fontWeight:700,marginBottom:4}}>
@@ -583,7 +838,7 @@ export default function EVPAuditTool() {
             <p style={{fontSize:13,color:T.ink3,marginBottom:28,fontFamily:"'DM Sans',sans-serif"}}>Multi-source intelligence gathering in progress…</p>
           )}
 
-          <div style={{textAlign:"left"}}>
+          <div style={{textAlign:"left",width:"100%"}}>
             {steps.map((s,i)=>(
               <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",background:"#fff",borderRadius:7,marginBottom:6,border:`1px solid ${i===steps.length-1?T.brandBorder:T.border}`,animation:"stepIn 0.35s ease"}}>
                 <span style={{fontSize:11,color:T.brand,fontFamily:"'Sora',sans-serif",animation:i===steps.length-1&&!isRateLimit?"pulse 1.3s ease infinite":"none"}}>{i===steps.length-1?"►":"✓"}</span>
@@ -593,6 +848,7 @@ export default function EVPAuditTool() {
           </div>
           {!isRateLimit && <p style={{fontSize:11,color:T.ink4,marginTop:20,fontFamily:"'DM Sans',sans-serif"}}>Deep audit · 45–90 seconds</p>}
         </div>
+        <AIDisclaimer />
       </div>
     );
   }
@@ -601,9 +857,9 @@ export default function EVPAuditTool() {
   if(phase==="error") {
     const isRateLimitFinal = error === "rate_limit_exceeded";
     return(
-      <div style={{...root,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{...root,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
         <style>{GLOBAL_STYLES}</style>
-        <div style={{textAlign:"center",maxWidth:440,padding:"0 clamp(16px,4vw,24px)"}}>
+        <div style={{textAlign:"center",maxWidth:440,padding:"0 clamp(16px,4vw,24px)",flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
 
           {isRateLimitFinal ? (
             <>
@@ -643,6 +899,7 @@ export default function EVPAuditTool() {
             </button>
           </div>
         </div>
+        <AIDisclaimer />
       </div>
     );
   }
@@ -676,7 +933,6 @@ export default function EVPAuditTool() {
         gap:8,
         minWidth:0,
       }}>
-        {/* Left: Logo + company */}
         <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
           <InvokBizLogo size={35}/>
           <span style={{color:T.border,margin:"0 2px",flexShrink:0}}>·</span>
@@ -699,13 +955,12 @@ export default function EVPAuditTool() {
           )}
         </div>
 
-        {/* Right: weighted + new audit */}
         <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
           <span className="hide-sm" style={{fontSize:11,color:T.ink4,fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>
             Weighted: <span style={{color:scoreColor(wScore),fontWeight:700,fontFamily:"'Sora',sans-serif"}}>{wScore}</span>
           </span>
           <button
-            onClick={()=>{setPhase("idle");setCompany("");setWebsiteUrl("");}}
+            onClick={()=>{setPhase("idle");setCompany("");setWebsiteUrl("");setFullName("");setCurrentCompany("");setWorkEmail("");setFormError("");}}
             style={{background:"#fff",color:T.brand,border:`1.5px solid ${T.brand}`,borderRadius:6,padding:"5px 12px",fontSize:"clamp(9px,2vw,11px)",fontFamily:"'Sora',sans-serif",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}
           >
             ← New Audit
@@ -714,7 +969,7 @@ export default function EVPAuditTool() {
       </div>
 
       {/* ── Report container ── */}
-      <div style={{maxWidth:900,margin:"0 auto",padding:"clamp(20px,4vw,36px) clamp(16px,4vw,24px) 80px"}}>
+      <div style={{maxWidth:900,margin:"0 auto",padding:"clamp(20px,4vw,36px) clamp(16px,4vw,24px) 40px"}}>
 
         {/* ─── Report header ─────────────────────────────────── */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:12}}>
@@ -737,9 +992,7 @@ export default function EVPAuditTool() {
         <div className="report-section">
           <SectionLabel n={1} title="Overall Attractiveness Index"/>
 
-          {/* Score + summary: stack on mobile */}
           <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap",marginBottom:24}}>
-            {/* Big score card */}
             <div style={{
               background:"#fff",border:`1px solid ${T.border}`,borderRadius:12,
               padding:"24px clamp(14px,3vw,28px)",
@@ -765,7 +1018,6 @@ export default function EVPAuditTool() {
               </div>
             </div>
 
-            {/* Summary + bar chart */}
             <div style={{flex:1,minWidth:240}}>
               <p style={{fontSize:13,color:T.ink2,lineHeight:1.8,marginBottom:20,fontFamily:"'DM Sans',sans-serif"}}>{R?.audit_summary}</p>
               <div style={{background:"#fff",border:`1px solid ${T.border}`,borderRadius:10,padding:"16px clamp(10px,3vw,14px)"}}>
@@ -790,7 +1042,7 @@ export default function EVPAuditTool() {
             </div>
           </div>
 
-          {/* ── Weighted score config — FIXED ALIGNMENT ── */}
+          {/* ── Weighted score config ── */}
           <div style={{background:"#fff",border:`1px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
             <button
               onClick={()=>setShowWeights(o=>!o)}
@@ -1093,6 +1345,10 @@ export default function EVPAuditTool() {
         </div>
 
       </div>{/* /report container */}
+
+      {/* ── AI Disclaimer (sticky bottom) ── */}
+      <AIDisclaimer />
+
     </div>
   );
 }
