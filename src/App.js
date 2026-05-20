@@ -51,7 +51,7 @@ const calcWeighted = (dims,weights) => { let t=0,ws=0; DIMS.forEach(d=>{t+=(dims
 
 /* ─── Google Sheets Web App URL ────────────────────────────── */
 /* Replace this with your deployed Google Apps Script Web App URL */
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID_HERE/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzs_WYTtGzZ38lP_m_ewnI0LaS64dKsPa63HFR_qalrTc4FVeYWYtgR_fmBvQIiW-6RcA/exec";
 
 /* ─── InvokBiz Logo ─────────────────────────────────── */
 const InvokBizLogo = ({ size = 28 }) => (
